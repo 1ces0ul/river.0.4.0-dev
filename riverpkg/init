@@ -3,15 +3,4 @@
 
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 
-rijan &
-
-fcitx5 -d &
-
-systemctl --user start swww.service
-
-sleep 1.5
-
-swww img ~/.config/river/wallpapers/blackhole.gif &
-
-
-waybar -c /home/icesoul/.config/river/statusbar/waybar/config.json -s /home/icesoul/.config/river/statusbar/waybar/river_style.css &
+exec rijan
