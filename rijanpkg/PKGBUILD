@@ -1,4 +1,4 @@
-# Maintainer: Your Name <youremail@example.com>
+# Maintainer: Alex G <icesoul_mo@gmail.com>
 pkgname=rijan-git
 pkgver=fd08913
 pkgrel=1
@@ -13,8 +13,11 @@ makedepends=('zig>=0.15.0' 'wayland-protocols' 'scdoc' 'pkgconf' 'git')
 provides=('rijan')
 conflicts=('rijan')
 
-source=("rijan::git+https://codeberg.org/ifreund/rijan.git")
-sha256sums=('SKIP')
+source=(
+  "rijan::git+https://codeberg.org/ifreund/rijan.git"
+  "rijan.janet.patched"
+  )
+sha256sums=('SKIP' 'SKIP')
 
 pkgver() {
   cd "$srcdir/rijan"
@@ -22,36 +25,11 @@ pkgver() {
 }
 
 prepare() {
- cd "$srcdir/rijan"
+  cd "$srcdir/rijan"
 
-  # 使用 Janet 运行一个简单的字符串替换脚本
-  # 我们通过匹配函数头的起始和结束关键行，直接把这些代码块替换为空
-  janet -e '
-    (var content (file/read (file/open "rijan.janet" :r) :all))
-    
-    # 定义需要精准剔除的代码片段（直接使用固定字符串匹配）
-    (def to-remove [
-      # 1. 剔除 bg/manage 函数
-      "(defn bg/manage [bg output]\n  (:sync-next-commit (bg :shell-surface))\n  (:place-bottom (bg :node))\n  (:set-position (bg :node) (output :x) (output :y))\n  (def buffer (:create-u32-rgba-buffer\n                (registry \"wp_single_pixel_buffer_manager_v1\")\n                ;(rgb-to-u32-rgba ((wm :config) :background))))\n  (:attach (bg :surface) buffer 0 0)\n  (:damage-buffer (bg :surface) 0 0 0x7fff_ffff 0x7fff_ffff)\n  (:set-destination (bg :viewport) (output :w) (output :h))\n  (:commit (bg :surface))\n  (:destroy buffer))"
-      
-      # 2. 剔除 bg/destroy 函数
-      "(defn bg/destroy [bg]\n  (:destroy (bg :viewport))\n  (:destroy (bg :shell-surface))\n  (:destroy (bg :surface))\n  (:destroy (bg :node)))"
-      
-      # 3. 剔除 bg/create 函数
-      "(defn bg/create []\n  (def surface (:create-surface (registry \"wl_compositor\")))\n  (def viewport (:get-viewport (registry \"wp_viewporter\") surface))\n  (def shell-surface (:get-shell-surface (registry \"river_window_manager_v1\") surface))\n  @{:surface surface\n    :viewport viewport\n    :shell-surface shell-surface\n    :node (:get-node shell-surface)})"
-      
-      # 4. 剔除调用逻辑
-      "(bg/destroy (output :bg))"
-      "(bg/manage (output :bg) output)"
-      ":bg (bg/create)"
-    ])
-
-    (each fragment to-remove
-      (set content (string/replace fragment "" content)))
-
-    (file/write (file/open "rijan.janet" :w) content)
-    (print "Rijan background logic removed successfully.")
-  '
+#######
+  cp "$srcdir/rijan.janet.patched" "$srcdir/rijan/rijan.janet"
+#######
 
   mkdir -p "$srcdir/zig-cache"
   mkdir -p "$srcdir/zig-local-cache"
@@ -68,7 +46,7 @@ build() {
     -Doptimize=ReleaseSafe \
     -Dcpu=baseline \
     --summary all
-}
+  }
 
 package() {
   cd "$srcdir/rijan"
